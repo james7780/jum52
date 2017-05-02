@@ -160,7 +160,10 @@ void do_keys(void)
 			}
 */
 			if (i == which->lastRead)
+				{
 				which->last_key_still_pressed = 1;      // flag key still held
+				return;				// Added back 2017-05-02 to fix PAUSE in games
+				}
 
 			which->lastRead = i;
 
