@@ -1110,21 +1110,25 @@ void HostDisableInterrupts(void)
 // Sound output
 void HostProcessSoundBuffer(void)
 {
+	// Avoid a hang
+	if (0 == options.audio)
+		return;
+
   // 2017-01-03 wait until clear to fill the sound buffer
   // (ie: until fillsoundbuffer() has been run)
   // this will sync the audio output, and sync the emu to the audio output)
   while (0 == fillSoundBufferDone)
-	{
-	Sleep(1);
-	}
+		{
+		Sleep(1);
+		}
 
   // update buffer with new data
   if (options.audio)
-	Pokey_process(snd, snd_buf_size);
+		Pokey_process(snd, snd_buf_size);
 
   // render "voice" buffer if necessary
   if (options.voice)
-	renderMixSampleEvents(snd, snd_buf_size);
+		renderMixSampleEvents(snd, snd_buf_size);
 
   fillSoundBufferDone = 0;
 }
