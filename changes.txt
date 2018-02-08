@@ -83,7 +83,8 @@ Code changes file.
    - Fix to synchronising of audio buffer (less crackly audio)
    - Changes to keyboard reading
 
-
+8 February 2018
+   - Fix to hang if PC audio not available
 
     
 
