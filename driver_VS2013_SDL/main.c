@@ -696,7 +696,7 @@ void HostDoEvents(void)
 	if (options.controller > 0)
 	{
 		cont1.mode = CONT_MODE_ANALOG;
-		//cont2.mode = CONT_MODE_ANALOG;
+		cont2.mode = CONT_MODE_ANALOG;		// Uncommented JH 2018-09-25
 	}
 
 	// get mouse movement
@@ -738,20 +738,91 @@ void HostDoEvents(void)
 				running = 0;
 				break;
 
+
+			case SDL_JOYHATMOTION:					// D-PAD ?
+				if (1 == options.controller)
+				{
+#ifdef _DEBUG
+					//DebugPrint("Joyhatmotion: device = %d, axis = %d\n", event.jhat.which, event.jhat.hat);
+#endif
+					if (0 == event.jhat.which)
+					{
+						// Hat position values:
+						// SDL_HAT_LEFTUP   SDL_HAT_UP       SDL_HAT_RIGHTUP
+						// SDL_HAT_LEFT     SDL_HAT_CENTERED SDL_HAT_RIGHT
+						// SDL_HAT_LEFTDOWN SDL_HAT_DOWN     SDL_HAT_RIGHTDOWN
+						// Note that zero means the POV is centered.
+
+						Uint8 value = event.jhat.value;
+						switch (value)
+							{
+							case SDL_HAT_LEFT :
+								cont1.analog_h = pot_max_left;
+								cont1.analog_v = POT_CENTRE;
+								break;
+							case SDL_HAT_LEFTUP :
+								cont1.analog_h = pot_max_left;
+								cont1.analog_v = pot_max_left;
+								break;
+							case SDL_HAT_UP :
+								cont1.analog_h = POT_CENTRE;
+								cont1.analog_v = pot_max_left;
+								break;
+							case SDL_HAT_RIGHTUP :
+								cont1.analog_h = pot_max_right;
+								cont1.analog_v = pot_max_left;
+								break;
+							case SDL_HAT_RIGHT :
+								cont1.analog_h = pot_max_right;
+								cont1.analog_v = POT_CENTRE;
+								break;
+							case SDL_HAT_RIGHTDOWN :
+								cont1.analog_h = pot_max_right;
+								cont1.analog_v = pot_max_right;
+								break;
+							case SDL_HAT_DOWN :
+								cont1.analog_h = POT_CENTRE;
+								cont1.analog_v = pot_max_right;
+								break;
+							case SDL_HAT_LEFTDOWN :
+								cont1.analog_h = pot_max_left;
+								cont1.analog_v = pot_max_right;
+								break;
+							default:
+								cont1.analog_h = POT_CENTRE;
+								cont1.analog_v = POT_CENTRE;
+							}
+					}
+
+				}
+				break;
 			case SDL_JOYAXISMOTION:
 				if (1 == options.controller)
 				{
+#ifdef _DEBUG
+					DebugPrint("Joyaxismotion: device = %d, axis = %d\n", event.jaxis.which, event.jaxis.axis);
+#endif
 					if (0 == event.jaxis.which)
 					{
-						if (0 == event.jaxis.axis)
-							cont1.analog_h = cook_joypos(event.jaxis.value);
-						else
-							cont1.analog_v = cook_joypos(event.jaxis.value);
+						Uint8 axis = event.jaxis.axis;
+						Sint16 value = event.jaxis.value;
+						if (0 == axis)
+							cont1.analog_h = cook_joypos(value);
+						else if (1 == axis)
+							cont1.analog_v = cook_joypos(value);
+						// Dual-stick support added JH 2018-09-25
+						else if (2 == axis)
+							cont2.analog_h = cook_joypos(value);
+						else if (3 == axis)
+							cont2.analog_v = cook_joypos(value);
 					}
 				}
 				break;
 			case SDL_JOYBUTTONDOWN:
 				//HostLog(s);
+#ifdef _DEBUG
+				//DebugPrint("Joybutton: device = %d, button = %d\n", event.jbutton.which, event.jbutton.button);
+#endif
 				if (0 == event.jbutton.which)
 				{
 					if (0 == event.jbutton.button)

@@ -81,7 +81,11 @@ Code changes file.
 8 February 2018
    - Fix to hang if PC audio not available
 
+25 September 2018
+   - Added PC controller dual analog stick support (for Robotron and
+     Space Dungeon). (Old PS2 version already had this).
 
+  
     
 
 
