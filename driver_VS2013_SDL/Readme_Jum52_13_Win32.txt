@@ -1,7 +1,7 @@
 Jum's A5200 Emulator, Win32/SDL Version 1.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1 November 2016
+26 November 2018
 
 This is an Atari 5200 emulator for Windows.
 
@@ -35,13 +35,13 @@ emulator packages of any sort.
 	DO NOT ASK ME FOR ROM OR CARTRIDGE IMAGES !!!
 ******************************************************************
 
-Changes (v1.0 to v1.1):
+Changes (v1.1 to v1.3):
 ~~~~~~~
 
-- Implemented key remapping to make it easier to use with
-  arcade controller panels.
-- Implemented 3x and 4x scaling
-- Fix to 2nd fire button handling ("top" side buttons) 
+- Fix to synchronising of audio buffer (less crackly audio)
+- Fix to keyboard input
+- Fix to hang if PC audio not available
+- Robotron mode for PC dual-stick gamepad (or PS3/PS4 controller)
 
 
 
@@ -98,15 +98,14 @@ Joystick Modes:
 
 From the Options Menu, select joystick mode by toggling "Controller" (press left or right arrow key while on the Controller option).
 
-Pengo control mode is automatically activated when Pengo cart is loaded.
+"Pengo" control mode is automatically activated when Pengo cart is loaded.
 
 Many games do "auto-calibrating" while you play. Moving the joystick handle in a big circle while chanting "work dammit" usually gets it working OK. Also it sometimes helps if you leave the analog stick in the central position when starting a game.
 
 If you activate joystick mode, and the game does not control as
 expected, then try reloading the game.
 
-Only a standard 2-axis / 2-button joystick and a MS Sidewinder have been 
-tested.
+Originally only standard 2-axis / 2-button joystick and a MS Sidewinder were supported. Recent support for "generic" dual analog PC controllers has been added. The D-PAD on the controller should also work in joystick mode.
 
 
 

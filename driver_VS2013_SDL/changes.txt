@@ -85,8 +85,3 @@ Code changes file.
    - Added PC controller dual analog stick support (for Robotron and
      Space Dungeon). (Old PS2 version already had this).
 
-  
-    
-
-
-

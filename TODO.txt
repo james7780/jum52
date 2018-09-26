@@ -1,4 +1,4 @@
-* Implement Robotron mode for PC dual-stick gamepad (or PS4 controller)
+* [DONE] Implement Robotron mode for PC dual-stick gamepad (or PS4 controller)
 * remove PAL stuff
 * Autoswitch to analog mode
 * Fix non-working games
