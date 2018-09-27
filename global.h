@@ -154,6 +154,7 @@ int Jum52_LoadROM(char *);  // Load a given ROM
 int Jum52_Emulate(void);    // Execute
 int Jum52_Reset(void);		// Reset current ROM
 
-extern void _cdecl DebugPrint(const char *format, ...);
+//extern void _cdecl DebugPrint(const char *format, ...);
+extern void DebugPrint(const char *format, ...);
 
 #endif

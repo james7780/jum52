@@ -1,8 +1,7 @@
-Jum's 5200 Emulator V1.1
+Jum's 5200 Emulator V1.3
 Initialising Jum52...
 Reading config file 'jum52.cfg'...
 Video mode: NTSC
 Trying to load 'MoonPatrol-DNW.bin', crc32=0xD0B2F285
 Rom 'MoonPatrol-DNW.bin' loaded OK.
 Executing 2000000000 CPU ticks...
-No roms found!

@@ -29,7 +29,8 @@
 extern uint16 pc_reg;
 
 // Write debug output strings
-void _cdecl DebugPrint(const char *format, ...)
+//void _cdecl DebugPrint(const char *format, ...)
+void DebugPrint(const char *format, ...)
 {
     char str[1024];
     va_list argptr;

@@ -1206,7 +1206,8 @@ void HostProcessSoundBuffer(void)
 	// this will sync the audio output, and sync the emu to the audio output)
 	while (0 == fillSoundBufferDone)
 		{
-		Sleep(1);
+		//Sleep(1);
+		SDL_Delay(1);
 		}
 
 	// update buffer with new data
@@ -1331,7 +1332,7 @@ char *doFileBrowseDialog(void)
 // ROM selection menu (new version)
 char* DoRomMenu()
 	{
-	//char s[256];
+	char s[256];
 	//int debounce = 0;
 	SDL_Event event;
 	//long findHandle;
@@ -1769,7 +1770,7 @@ int DoOptionsMenu(void)
 
 		SDL_Delay(50);
 
-		ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
+		int ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
 		if (ret < 0)
 			fprintf(stderr, "BlitSurface error: %s\n", SDL_GetError());
 

@@ -13,7 +13,8 @@
 #define FALSE	0
 #endif
 
-extern void _cdecl DebugPrint(const char *format, ...);
+//extern void _cdecl DebugPrint(const char *format, ...);
+extern void DebugPrint(const char *format, ...);
 
 //#define DEBUG
 // CPU cycles between HBL's

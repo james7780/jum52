@@ -10,7 +10,7 @@ RM = rm
 #SDL_CFLAGS := $(shell sdl-config --cflags)
 #SDL_LDFLAGS := $(shell sdl-config --libs)
 
-CFLAGS := -Wall -O2 -DRASPBIAN $(shell sdl-config --cflags)
+CFLAGS := -std=c99 -Wall -O2 -DRASPBIAN $(shell sdl-config --cflags)
 LDFLAGS := $(shell sdl-config --libs)
 
 TARGET = jum52
