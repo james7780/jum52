@@ -80,7 +80,6 @@ static int jprintf_y = 8;
 static struct ROMdata *romdata = NULL;
 static int num_roms = 0;
 static int selection = 0;
-static char *filename = NULL;					// currently selected filename
 static int frame_position = 0;
 //int frame_selection = 0;
 static int currentromindex = 0;
@@ -93,6 +92,7 @@ void drawChar(char c, int x, int y, unsigned int colour);
 void printXY(char *s, int x, int y, unsigned int colour);
 int DoOptionsMenu(void);
 
+/// Wait for a specified number of frames
 void Wait(int numframes)
 	{
 	// TODO - implement for Windows
@@ -255,11 +255,12 @@ char getkey(void)
 	}
 
 static Uint8 *gAudioStream = NULL;
-static unsigned char fillSoundBufferDone = 1;			// to sync emu to audio stream
+static volatile unsigned char fillSoundBufferDone = 1;			// to sync emu to audio stream
 
 // sound mixer callback
 void fillsoundbuffer(void *userdata, Uint8 *stream, int len)
 	{
+	// NOTE: oldValue is assigned but never used!
 	static Uint8 oldValue = 128;
 
 	const int vol64 = (options.volume * 63) / 100;
@@ -396,7 +397,6 @@ int Init(void)
 	DebugPrint("SDL audio sample buffer size: %d\n", usedSpec->samples);
 #endif
 
-
 	if (usedSpec == NULL)
 		usedSpec = &reqSpec;
 
@@ -429,7 +429,7 @@ int Init(void)
 		}
 
 	// allocate space for ROM info
-	romdata = (struct ROMdata*)malloc(MAX_ROMS * sizeof(struct ROMdata));
+	romdata = (struct ROMdata *)malloc(MAX_ROMS * sizeof(struct ROMdata));
 	if (romdata == NULL)
 		{
 		HostLog("Couldn't allocate memory for rom list!\n");
@@ -492,7 +492,6 @@ void HostRefreshPalette(void)
 // Actual video copy
 void HostBlitVideo(void)
 	{
-	int ret;
 	uint8 *pScr;
 	uint8 *pLine;
 	int x, y;
@@ -506,7 +505,7 @@ void HostBlitVideo(void)
 
 	// copy 5200 buffer (gfxdest) to SDL buffer
 	// NB: only copy 320x240 from gfxdest to buffer
-	pScr = (uint8*)pBuffer->pixels;
+	pScr = (uint8 *)pBuffer->pixels;
 	if (4 == options.scale && !options.debugmode)
 		{
 		// 4x copy
@@ -600,7 +599,7 @@ void HostBlitVideo(void)
 	// sync, update and flip buffers here
 	while (frameStart >= SDL_GetTicks())
 		{
-		// do idle loop stuff here
+		// give other threads some time
 		SDL_Delay(1);
 		}
 	now = SDL_GetTicks();
@@ -637,7 +636,7 @@ void HostBlitVideo(void)
 		destRect.x = destRect.y = 0;
 		destRect.w = outScreenWidth;		// ignored
 		destRect.h = outScreenHeight;		// ignored
-		ret = SDL_BlitSurface(pBuffer, &srcRect, pSurface, &destRect);
+		int ret = SDL_BlitSurface(pBuffer, &srcRect, pSurface, &destRect);
 		if (ret < 0)
 			fprintf(stderr, "BlitSurface error: %s\n", SDL_GetError());
 		}
@@ -667,21 +666,6 @@ uint8 cook_joypos(short value)
 
 	val_out = pot_max_left + ((value + 32768) / div_factor);
 
-	/*
-	// do 'dead zone'
-	if((value > 120) && (value < 136)) {
-	val2 = POT_CENTRE;
-	}
-	else {
-	// interpolate between pot_max_left and pot_max_right
-	if(value < 128) {
-	val2 = POT_CENTRE - ((128 - value) * pot_range_left) / 128;
-	}
-	else { // value > 128
-	val2 = POT_CENTRE + ((value - 128) * pot_range_right) / 128;
-	}
-	}
-	*/
 	return (uint8)val_out;
 	}
 
@@ -968,7 +952,7 @@ void HostDoEvents(void)
 								cont2.key[3] = 1;
 								break;
 							case SDLK_RETURN:	// Hash button PL2
-								cont2.key[3] = 1;
+								cont2.key[1] = 1;
 								break;
 							case SDLK_F7:		// visualise sound on/off
 								//if(!visualise_sound) visualise_sound = 1;
@@ -1222,7 +1206,7 @@ void clrEmuScreen(unsigned char colour)
 	unsigned char *pp;
 	unsigned int numbytes;
 
-	pp = (unsigned char*)pBuffer->pixels;
+	pp = (unsigned char *)pBuffer->pixels;
 	numbytes = pBuffer->w * pBuffer->h;
 	while (numbytes--)
 		*pp++ = colour;
@@ -1231,13 +1215,12 @@ void clrEmuScreen(unsigned char colour)
 
 void drawBox(int x1, int y1, int x2, int y2, unsigned char colour)
 	{
-	unsigned char *pp;
 	int x, y;
 	// TODO: draw rect on output screen here
 
 	for (y = y1; y <= y2; y++)
 		{
-		pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x1;
+		unsigned char *pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x1;
 		for (x = x1; x <= x2; x++)
 			{
 			*pp++ = colour;
@@ -1250,14 +1233,12 @@ void drawChar(char c, int x, int y, unsigned int colour)
 	{
 	unsigned int i, j;
 	unsigned char cc;
-	unsigned char *pp;
-	unsigned char *pc;
 
 	// set character pointer
-	pc = &font5200[(c - 32) * 8];
+	unsigned char *pc = &font5200[(c - 32) * 8];
 
 	// set screen pointer
-	pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x;
+	unsigned char *pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x;
 	for (i = 0; i < 8; i++)
 		{
 		cc = *pc++;
@@ -1324,10 +1305,7 @@ char *doFileBrowseDialog(void)
 // ROM selection menu (new version)
 char *DoRomMenu()
 	{
-	int i;
 	char s[256];
-	int y;
-	int key;
 	int debounce = 0;
 	SDL_Event event;
 	long findHandle;
@@ -1361,144 +1339,206 @@ char *DoRomMenu()
 			}
 		} while (0 == _findnext(findHandle, &fileinfo) && num_roms < MAX_ROMS);
 
-		_findclose(findHandle);
+	_findclose(findHandle);
 
 #ifdef _DEBUG
-		for (i = 0; i < num_roms; i++)
-			{
-			sprintf(s, "rom: %s\n", romdata[i].name);
-			HostLog(s);
-			}
+	for (i = 0; i < num_roms; i++)
+		{
+		sprintf(s, "rom: %s\n", romdata[i].name);
+		HostLog(s);
+		}
 #endif
 
 	// No roms in the folder?
-// TODO : numroms vs num_roms ???
-	if (0 == numroms)
+	if (0 == num_roms)
 		{
 		HostLog("No roms in current folder!");
 		return NULL;
 		}
 
-		// choose rom from list
-		while (1)
+	// choose rom from list
+	while (1)
+		{
+		selection = frame_position + 9;            // rom in middle of frame is always the selected one
+		int key = 0;
+
+		// get key (if any)
+		if (SDL_PollEvent(&event))
 			{
-			selection = frame_position + 9;            // rom in middle of frame is always the selected one
-			key = 0;
-
-			// get key (if any)
-			if (SDL_PollEvent(&event))
+			switch (event.type)
 				{
-				switch (event.type)
-					{
-						case SDL_KEYDOWN:
-							key = event.key.keysym.sym;
-							break;
-						case SDL_QUIT:
-							exit_app = 1;
-							running = 0;
-							break;
-					}
+					case SDL_KEYDOWN:
+						key = event.key.keysym.sym;
+						break;
+					case SDL_QUIT:
+						exit_app = 1;
+						running = 0;
+						break;
 				}
-
-			// check if ROM selected
-			if (key == SDLK_SPACE || key == SDLK_RETURN)
-				{
-				break;
-				}
-
-			// check other keys
-			// move ROM selector up/down
-			if (key == SDLK_DOWN)
-				{
-				if (frame_position < (num_roms - 10))
-					frame_position++;
-				//debounce = DEBOUNCE_RATE;
-				}
-			if (key == SDLK_UP)
-				{
-				if (frame_position > -9)
-					frame_position--;
-				//debounce = DEBOUNCE_RATE;
-				}
-			// page ROM selector up/down
-			if (key == SDLK_PAGEUP)
-				{
-				frame_position -= 10;
-				if (frame_position < -9)
-					frame_position = -9;
-				//debounce = DEBOUNCE_RATE;
-				}
-			if (key == SDLK_PAGEDOWN)
-				{
-				frame_position += 10;
-				if (frame_position >(num_roms - 1))
-					frame_position = (num_roms - 1);
-				//debounce = DEBOUNCE_RATE;
-				}
-
-			if (key == SDLK_ESCAPE)
-				{
-				escaped = 1;
-				break;
-				}
-
-			// clear draw buffer
-			clrEmuScreen(0x00);
-			drawBox(4, 4, 315, 235, 0x50);
-			sprintf(s, "Jum's Atari 5200 Emulator V%s", JUM52_VERSION);
-			printXY(s, 48, 8, 0x4E);
-			printXY("by James Higgs 2000-2018", 52, 16, 0x44);
-
-			// Draw text in scroll box
-			y = 32;
-			for (i = frame_position; i < (frame_position + 19); i++)
-				{
-				if (i >= 0 && i < num_roms)
-					{
-					if (i == selection)
-						printXY(romdata[i].name, 32, y, 0x0f);
-					else
-						printXY(romdata[i].name, 32, y, 0x18);
-					}
-				y += 8;
-				}
-
-			printXY("Press [Space] to select a game.", 32, 212, 0x1C);
-
-			hline(pBuffer, 4, 315, 4, 0x0F);
-			hline(pBuffer, 4, 315, 235, 0x0F);
-			vline(pBuffer, 4, 4, 235, 0x0F);
-			vline(pBuffer, 315, 4, 235, 0x0F);
-
-			//printXY(getRomFullPath(selection), 10, 212, 0x07);
-
-			//if(debounce) debounce--;                    // update key delay if neccessary
-
-			while (frameStart > SDL_GetTicks())
-				{
-				// do idle loop stuff here
-				SDL_Delay(20);
-				}
-			frameStart = SDL_GetTicks() + 20;
-
-			SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
-			SDL_UpdateRect(pSurface, 0, 0, 320, 240);
 			}
 
-		currentromindex = selection;
+		// check if ROM selected
+		if (key == SDLK_SPACE || key == SDLK_RETURN)
+			{
+			break;
+			}
 
-		// is user quitting or escaped?
-		if (1 == exit_app)
-			return NULL;
+		// check other keys
+		// move ROM selector up/down
+		if (key == SDLK_DOWN)
+			{
+			if (frame_position < (num_roms - 10))
+				frame_position++;
+			//debounce = DEBOUNCE_RATE;
+			}
+		if (key == SDLK_UP)
+			{
+			if (frame_position > -9)
+				frame_position--;
+			//debounce = DEBOUNCE_RATE;
+			}
+		// page ROM selector up/down
+		if (key == SDLK_PAGEUP)
+			{
+			frame_position -= 10;
+			if (frame_position < -9)
+				frame_position = -9;
+			//debounce = DEBOUNCE_RATE;
+			}
+		if (key == SDLK_PAGEDOWN)
+			{
+			frame_position += 10;
+			if (frame_position >(num_roms - 1))
+				frame_position = (num_roms - 1);
+			//debounce = DEBOUNCE_RATE;
+			}
 
-		// Did user escape?
-		if (1 == escaped)
-			return "esc";
+		if (key == SDLK_ESCAPE)
+			{
+			escaped = 1;
+			break;
+			}
 
-		// return the full path name of this rom file
-		//return getRomFullPath(selection);
+		// clear draw buffer
+		clrEmuScreen(0x00);
+		drawBox(4, 4, 315, 235, 0x50);
+		sprintf(s, "Jum's Atari 5200 Emulator V%s", JUM52_VERSION);
+		printXY(s, 48, 8, 0x4E);
+		printXY("by James Higgs 2000-2018", 52, 16, 0x44);
 
-		return romdata[selection].name;
+		// Draw text in scroll box
+		int y = 32;
+		for (int i = frame_position; i < (frame_position + 19); i++)
+			{
+			if (i >= 0 && i < num_roms)
+				{
+				if (i == selection)
+					printXY(romdata[i].name, 32, y, 0x0f);
+				else
+					printXY(romdata[i].name, 32, y, 0x18);
+				}
+			y += 8;
+			}
+
+		printXY("Press [Space] to select a game.", 32, 212, 0x1C);
+
+		hline(pBuffer, 4, 315, 4, 0x0F);
+		hline(pBuffer, 4, 315, 235, 0x0F);
+		vline(pBuffer, 4, 4, 235, 0x0F);
+		vline(pBuffer, 315, 4, 235, 0x0F);
+
+		//printXY(getRomFullPath(selection), 10, 212, 0x07);
+
+		//if(debounce) debounce--;					// update key delay if neccessary
+
+		while (frameStart > SDL_GetTicks())
+			{
+			// do idle loop stuff here
+			SDL_Delay(20);
+			}
+		frameStart = SDL_GetTicks() + 20;
+
+		SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
+		SDL_UpdateRect(pSurface, 0, 0, 320, 240);
+		}
+
+	currentromindex = selection;
+
+	// is user quitting or escaped?
+	if (1 == exit_app)
+		return NULL;
+
+	// Did user escape?
+	if (1 == escaped)
+		return "esc";
+
+	// return the full path name of this rom file
+	//return getRomFullPath(selection);
+
+	return romdata[selection].name;
+	}
+
+// Help screen
+void DoHelpMenu()
+	{
+	SDL_Event event;
+
+	// clear draw buffer
+	clrEmuScreen(0x00);
+	drawBox(4, 4, 315, 235, 0x50);
+	printXY("Help for Controls", 60, 8, 0x4E);
+
+	printXY("ESC             Options Menu", 16, 24, 0x18);
+	printXY("F1              5200 Start Button", 16, 32, 0x18);
+	printXY("F2              5200 Pause Button", 16, 40, 0x18);
+	printXY("F3              5200 Reset Button", 16, 48, 0x18);
+	printXY("Arrow Keys      5200 Joystick", 16, 56, 0x18);
+	printXY("Right Ctrl      5200 Fire 1", 16, 64, 0x18);
+	printXY("Right Shift     5200 Fire 2", 16, 72, 0x18);
+	printXY("F5              5200 * Button", 16, 80, 0x18);
+	printXY("F6              5200 # Button", 16, 88, 0x18);
+	printXY("E/S/D/F         Player 2 Joystick", 16, 96, 0x18);
+	printXY("Left Ctrl       Player 2 Fire 1", 16, 104, 0x18);
+	printXY("Left Shift      Player 2 Fire 2", 16, 112, 0x18);
+	printXY("F11             Show speed (FPS)", 16, 120, 0x18);
+	printXY("F12             Take a snapshot", 16, 128, 0x18);
+
+	printXY("Press [Esc] to exit.", 32, 212, 0x1C);
+
+	//hline(pBuffer, 4, 315, 4, 0x0F);
+	//hline(pBuffer, 4, 315, 235, 0x0F);
+	//vline(pBuffer, 4, 4, 235, 0x0F);
+	//vline(pBuffer, 315, 4, 235, 0x0F);
+
+	SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
+	SDL_UpdateRect(pSurface, 0, 0, 320, 240);
+
+	// Display help screen
+	while (1)
+		{
+		int key = 0;
+
+		// get key (if any)
+		if (SDL_PollEvent(&event))
+			{
+			switch (event.type)
+				{
+					case SDL_KEYDOWN:
+						key = event.key.keysym.sym;
+						break;
+					case SDL_QUIT:
+						exit_app = 1;
+						return;
+				}
+			}
+
+		// check if key pressed
+		if (0 != key)
+			break;
+
+		SDL_Delay(20);
+		}
+
 	}
 
 // SELECT menu
@@ -1515,8 +1555,6 @@ char *DoRomMenu()
 int DoOptionsMenu(void)
 	{
 	int i, selected_row;
-	int key;
-	int y;
 	int debounce = 0;
 	char s[256];
 	unsigned char c;
@@ -1529,7 +1567,7 @@ int DoOptionsMenu(void)
 	selected_row = 0;
 	while (1)
 		{
-		key = 0;
+		int key = 0;
 
 		// get key (if any)
 		if (SDL_PollEvent(&event))
@@ -1549,6 +1587,12 @@ int DoOptionsMenu(void)
 			{
 			selected_row = 8;
 			break;
+			}
+
+		if (key == SDLK_F1)
+			{
+			DoHelpMenu();
+			Wait(20);
 			}
 
 		// check for button press
@@ -1580,7 +1624,7 @@ int DoOptionsMenu(void)
 				break; // quit
 			}
 
-		// return to game
+		// return to game?
 		if (key == SDLK_ESCAPE)
 			{
 			selected_row = 0;
@@ -1618,7 +1662,7 @@ int DoOptionsMenu(void)
 							if (options.volume > 100)
 								options.volume = 100;
 							}
-						else if (key == SDLK_LEFT)
+						else // key == SDLK_LEFT
 							{
 							options.volume -= 5;
 							if (options.volume < 0)
@@ -1626,7 +1670,6 @@ int DoOptionsMenu(void)
 							}
 						break;
 				}
-
 			}
 
 		// clear draw buffer
@@ -1635,11 +1678,11 @@ int DoOptionsMenu(void)
 		//printXY("Jum52 Options Menu", 80, 8, 0x1f);
 		sprintf(s, "Jum's Atari 5200 Emulator V%s", JUM52_VERSION);
 		printXY(s, 32, 8, 0x4E);
-		printXY("by James Higgs 2000-2014", 52, 16, 0x44);
+		printXY("by James Higgs 2000-2018", 52, 16, 0x44);
 
 		// Draw options list
 #define INDENT 80
-		y = 48;
+		int y = 48;
 		for (i = 0; i <= SELECT_ROW_MAX; i++)
 			{
 			c = 0x18;
@@ -1710,7 +1753,7 @@ int DoOptionsMenu(void)
 
 		SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
 		SDL_UpdateRect(pSurface, 0, 0, 320, 240);
-		}
+		}	// wend
 
 	return selected_row;
 	}
@@ -1879,7 +1922,7 @@ void display_charset(void)
 			{
 			for (k = 0; k < 8; k++)
 				{
-				d = memory5200[chbase++];
+				uint8 d = memory5200[chbase++];
 				x = j * 8; y = i * 8 + k;
 				if (d & 0x80) SDL_SetPixel(pBuffer, x, y, c);
 				if (d & 0x40) SDL_SetPixel(pBuffer, x + 1, y, c);
@@ -1898,13 +1941,11 @@ void display_charset(void)
 // Monitor/debugger
 int monitor(void)
 	{
-	int n; //i, x;
+	int n = 0;
 	uint16 addr;
-	uint16 rtc5200;
 	//UBYTE data;
 	unsigned int new_addr;
 	char mystring[128];
-	char ccmd;
 
 	if (debugging)
 		return 0;
@@ -1915,9 +1956,10 @@ int monitor(void)
 		SDL_PauseAudio(1);
 
 	printhelp(320, 240);
+	memset(mystring, 0, 128);
 	while (strcmp(mystring, "quit") != 0)
 		{
-		rtc5200 = (memory5200[RTC_HI] << 8) + memory5200[RTC_LO];
+		uint16 rtc5200 = (memory5200[RTC_HI] << 8) + memory5200[RTC_LO];
 		// draw registers
 		clrEmuScreen(0x00);
 		sprintf(msg, "A %2X  X %2X  Y %2X  S %2X  PC %4X NVGBDIZC\n", A, X, Y, S, PC);
@@ -2003,7 +2045,7 @@ int monitor(void)
 
 		// get input
 		clrEmuScreen(0x00);
-		ccmd = getkey(); // (readkey() & 0xFF);
+		char ccmd = getkey(); // (readkey() & 0xFF);
 		//fprintf(stderr, "key: %d\n", ccmd);
 		sprintf(msg, "%c", ccmd);
 		printXY(msg, 0, 0, 15);
@@ -2173,6 +2215,7 @@ int monitor(void)
 
 int main(int argc, char *argv[])
 	{
+	char *filename;
 	char text[256];
 	int loadRom = 0;
 	int showMenu = 0;
@@ -2273,7 +2316,7 @@ int main(int argc, char *argv[])
 			jprintf_y = 16;
 
 			// Load a rom if specified
-			if (loadRom)
+			if (loadRom && filename)
 				{
 				if (0 == Jum52_LoadROM(filename))
 					{

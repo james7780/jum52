@@ -851,14 +851,14 @@ int pf_line_render(void)
 					c = pfcol[2];
 					for (i = 0; i < bytes_per_line; i++) {
 						d = memory5200[scanaddr + i];
-						if (d & 0x80) ppix8[x] = c;   pcb[x] = 2;
-						if (d & 0x40) ppix8[x + 1] = c; pcb[x + 1] = 2;
-						if (d & 0x20) ppix8[x + 2] = c; pcb[x + 2] = 2;
-						if (d & 0x10) ppix8[x + 3] = c; pcb[x + 3] = 2;
-						if (d & 0x08) ppix8[x + 4] = c; pcb[x + 4] = 2;
-						if (d & 0x04) ppix8[x + 5] = c; pcb[x + 5] = 2;
-						if (d & 0x02) ppix8[x + 6] = c; pcb[x + 6] = 2;
-						if (d & 0x01) ppix8[x + 7] = c; pcb[x + 7] = 2;
+						if (d & 0x80) { ppix8[x] = c; pcb[x] = 2; }
+						if (d & 0x40) { ppix8[x + 1] = c; pcb[x + 1] = 2; }
+						if (d & 0x20) { ppix8[x + 2] = c; pcb[x + 2] = 2; }
+						if (d & 0x10) { ppix8[x + 3] = c; pcb[x + 3] = 2; }
+						if (d & 0x08) { ppix8[x + 4] = c; pcb[x + 4] = 2; }
+						if (d & 0x04) { ppix8[x + 5] = c; pcb[x + 5] = 2; }
+						if (d & 0x02) { ppix8[x + 6] = c; pcb[x + 6] = 2; }
+						if (d & 0x01) { ppix8[x + 7] = c; pcb[x + 7] = 2; }
 						x += 8;
 					}
 					break;

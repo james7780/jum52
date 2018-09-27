@@ -1,9 +1,9 @@
-Jum's A5200 Emulator, Win32/SDL Version 1.3
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Jum's A5200 Emulator, Raspbian/SDL Version 1.3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-26 November 2018
+27 September 2018
 
-This is an Atari 5200 emulator for Windows.
+This is an Atari 5200 emulator for Raspberry Pi.
 
 The 6502 CPU emulator source is heavily based on a distribution
 by Neil Bradley. The POKEY sound emulator is a modified version 
@@ -14,7 +14,7 @@ The rest is by me.
 Obligatory Copyright Notice:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Jum's A5200 Emulator is copyright 1999-2010 by James Higgs.
+Jum's A5200 Emulator is copyright 1999-2018 by James Higgs.
 POKEY Sound is copyright 1996 by Ron Fries.
 
 Jum's A5200 Emulator is free as long as it is not used in a commercial
@@ -40,7 +40,6 @@ Changes (v1.1 to v1.3):
 
 - Fix to synchronising of audio buffer (less crackly audio)
 - Fix to keyboard input
-- Fix to hang if PC audio not available
 - Robotron mode for PC dual-stick gamepad (or PS3/PS4 controller)
 
 
@@ -55,7 +54,7 @@ These games give problems:
 - Mr. Do's Castle (corrupt rom dump)
 - Quest for Quintana Roo
 - Rescue on Fractalus
-- Ballblazer (can't start a game)
+- Ballblazer (very difficult to start a game)
 
 
 
@@ -90,6 +89,7 @@ Left Shift      Side trigger ("fire 2")
 Delete		* button (P2)
 Return		# button (P2)
 
+
 Note: Keys can be changed using key remapping (see below).
 
 
@@ -99,7 +99,7 @@ Joystick Modes:
 
 From the Options Menu, select joystick mode by toggling "Controller" (press left or right arrow key while on the Controller option).
 
-"Pengo" control mode is automatically activated when Pengo cart is loaded.
+Pengo control mode is automatically activated when Pengo cart is loaded.
 
 Many games do "auto-calibrating" while you play. Moving the joystick handle in a big circle while chanting "work dammit" usually gets it working OK. Also it sometimes helps if you leave the analog stick in the central position when starting a game.
 
@@ -107,6 +107,7 @@ If you activate joystick mode, and the game does not control as
 expected, then try reloading the game.
 
 Originally only standard 2-axis / 2-button joystick and a MS Sidewinder were supported. Recent support for "generic" dual analog PC controllers has been added. The D-PAD on the controller should also work in joystick mode.
+
 
 
 
@@ -139,8 +140,8 @@ You will need:
 - Some 16k or 32k Atari 5200 cartridge images
 
 1. Copy the cartridge images into the same directory as the
-   Jum52_win32.exe file.
-2. Run Jum52_win32.exe 
+   Jum52 executable file.
+2. Run Jum52
 3. Have fun!
 
 
@@ -163,7 +164,7 @@ options you can change are:
     - keyboard remappings
 
 1. Make a copy of jum52.cfg (call it "jum52.cfg.bak" or something).
-2. Edit jum52.cfg with Notepad or some other text editor.
+2. Edit jum52.cfg with a text editor.
 3. Set the options as you prefer (valid options are in brackets).
 4. Save jum52.cfg.
 
@@ -235,27 +236,27 @@ FAQ:
 
 2. Q: It doesn't run on my Mac
    A: Get the Mac version from www.bannister.org
-      (It's also available for QNX and BeOS)
+      (It's also available for Windows, PS2, QNX and BeOS)
 
-3. Q: It's crap. There's no blah blah yadda yadda ...
+2. Q: It's crap. There's no blah blah yadda yadda ...
    A: It's free. Waddaya expect?
 
-4. Q: It's so sssslllllooooowwwwwwwww...........
+3. Q: It's so sssslllllooooowwwwwwwww...........
    A: Your PC is crap.
    A: Set 'scale=1' in jum52.cfg
    A: Run your Windows emulator on a faster PC.
 
-5. Q: I have trouble getting my joystick to work.
+4. Q: I have trouble getting my joystick to work.
    A: It happens to even the best of men.
    A: Make sure that it's set up properly in Windows Control Panel.
 
-6. Q: I don't hear any sound.
+5. Q: I don't hear any sound.
    A: Cut down on the heavy metal.
    A: Turn up the volume REALLY loud.
    A: Check the volume setting in the Jum52's Options Menu
    A: Check that 'audio=on' is in jum52.cfg
 
-7. Q: Game X doesn't work.
+6. Q: Game X doesn't work.
    A: It may be a corrupt/bad ROM image (there are many).
    A: If you can't get past the start screen in the game,
       then Jum52 just doesn't handle that game (yet).
@@ -263,7 +264,7 @@ FAQ:
 
 8. Q: When I select "Load Game", nothing is listed.
    A: Copy your Atari 5200 game roms (with a .BIN file extension) to 
-      the same folder as Jum52_Win32.exe.
+      the same folder as Jum52.
 
 9. Q: Where can I get ROMZ? (plead/whine/grovel/demand)
    A: Learn to use a search engine, or something.

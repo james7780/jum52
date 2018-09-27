@@ -8,8 +8,6 @@
 #include <dirent.h>
 #include "SDL.h"
 #include "SDL_main.h"
-//#include "SDL_syswm.h"
-//#include "colours.h"
 
 // Jum52 stuff
 #include "../global.h"
@@ -24,8 +22,6 @@
 //#define VOICE_DEBUG
 #define MAX_ROMS	200
 
-FILE *logfile;
-
 enum
 	{
 	SCREENWIDTH = 320,
@@ -36,7 +32,6 @@ enum
 
 // global variables
 
-
 extern uint8 SystemFont[];
 extern unsigned char font5200[];
 extern int g_nFiltered;
@@ -45,6 +40,7 @@ extern unsigned char irqst;
 extern void irq6502();
 
 // Local variables
+static FILE *logfile = NULL;
 //static SDL_SysWMinfo wmInfo;
 static int outScreenWidth = 0;
 static int outScreenHeight = 0;
@@ -75,18 +71,14 @@ static int debugging = 0;
 
 int controller2connected = 0;
 
-
-
-
 //unsigned char toc[4096];
 //fio_dirent_t cd_dir[100];
 
 #define FRAMERATE		(1)				 //control's frame rate.
 #define DEBOUNCE_RATE   10
 static Uint32 frameStart = 0;
-
 //char	temparray[16];
-int g_nWhichBuffer = 0;
+//int g_nWhichBuffer = 0;
 
 static int jprintf_y = 8;
 
@@ -94,14 +86,12 @@ static int jprintf_y = 8;
 static struct ROMdata *romdata = NULL;
 static int num_roms = 0;
 static int selection = 0;
-static int frame_position;
-static int frame_selection = 0;
+static int frame_position = 0;
+//int frame_selection = 0;
 static int currentromindex = 0;
-static int is_robotron_mode = 1;
+//int is_robotron_mode = 1;
 static char string[256];
 static char rompath[260];
-
-
 
 // simple print funcs
 void drawChar(char c, int x, int y, unsigned int colour);
@@ -134,10 +124,10 @@ void setjprintfy(int y)
 // ******************************************************************************
 
 // 8-bit only
-void SDL_SetPixel(SDL_Surface* pSurface, int x, int y, uint8 value)
+void SDL_SetPixel(SDL_Surface *pSurface, int x, int y, uint8 value)
 	{
 	//determine position
-	char* pPosition = (char*)pSurface->pixels;
+	char *pPosition = (char*)pSurface->pixels;
 
 	//offset by y
 	pPosition += (pSurface->pitch * y);
@@ -149,13 +139,13 @@ void SDL_SetPixel(SDL_Surface* pSurface, int x, int y, uint8 value)
 	*pPosition = value;
 	}
 
-SDL_Color SDL_GetPixel(SDL_Surface* pSurface, int x, int y)
+SDL_Color SDL_GetPixel(SDL_Surface *pSurface, int x, int y)
 	{
 	SDL_Color color;
 	Uint32 col = 0;
 
 	//determine position
-	char* pPosition = (char*)pSurface->pixels;
+	char *pPosition = (char*)pSurface->pixels;
 
 	//offset by y
 	pPosition += (pSurface->pitch * y);
@@ -172,14 +162,14 @@ SDL_Color SDL_GetPixel(SDL_Surface* pSurface, int x, int y)
 	}
 
 // 8-bit only
-void hline(SDL_Surface* pSurface, int x1, int x2, int y, Uint8 col)
+void hline(SDL_Surface *pSurface, int x1, int x2, int y, Uint8 col)
 	{
 	Uint8 bpp;
 	short len;
 	int i;
 
 	//determine position
-	char* pPosition = (char *)pSurface->pixels;
+	char *pPosition = (char*)pSurface->pixels;
 
 	//offset by y
 	pPosition += (pSurface->pitch * y);
@@ -205,14 +195,14 @@ void hline(SDL_Surface* pSurface, int x1, int x2, int y, Uint8 col)
 	}
 
 // 8-bit only
-void vline(SDL_Surface* pSurface, int x, int y1, int y2, Uint8 col)
+void vline(SDL_Surface *pSurface, int x, int y1, int y2, Uint8 col)
 	{
 	Uint16 pitch;
 	short len;
 	int i;
 
 	//determine position
-	char* pPosition = (char *)pSurface->pixels;
+	char *pPosition = (char*)pSurface->pixels;
 
 	pitch = pSurface->pitch;
 
@@ -270,6 +260,7 @@ char getkey(void)
 	return ret;
 	}
 
+static volatile unsigned char fillSoundBufferDone = 1;			// to sync emu to audio stream
 
 // sound mixer callback
 void fillsoundbuffer(void *userdata, Uint8 *stream, int len)
@@ -306,13 +297,13 @@ void fillsoundbuffer(void *userdata, Uint8 *stream, int len)
 		}
 
 	//fprintf(stderr, "fillsoundbuffer: %d samples\n", len);
-
+	fillSoundBufferDone = 1;
 	}
 
 
 // ******************************************************************************
 //
-// Init the Ubuntu SDL machine
+// Init the Raspbian SDL machine
 //
 // ******************************************************************************
 int Init(void)
@@ -389,7 +380,7 @@ int Init(void)
 		SDL_ShowCursor(SDL_DISABLE);
 	//SDL_WM_GrabInput(SDL_GRAB_ON);
 
-	g_nWhichBuffer = 0;
+	//g_nWhichBuffer = 0;
 
 	if (options.videomode == NTSC)
 		HostLog("Video mode: NTSC\n");
@@ -524,7 +515,7 @@ void HostSetPaletteEntry(uint8 entry, uint8 red, uint8 green, uint8 blue)
 	sdlColor.r = red;
 	sdlColor.g = green;
 	sdlColor.b = blue;
-	//	SetPaletteEntry(col, entry);
+	//    SetPaletteEntry(col, entry);
 	SDL_SetColors(pBuffer, &sdlColor, entry, 1);
 	}
 
@@ -536,7 +527,6 @@ void HostRefreshPalette(void)
 // Actual video copy
 void HostBlitVideo(void)
 	{
-	int ret;
 	uint8 *pScr;
 	uint8 *pLine;
 	int x, y;
@@ -672,7 +662,7 @@ void HostBlitVideo(void)
 		destRect.x = destRect.y = 0;
 		destRect.w = outScreenWidth;		// ignored
 		destRect.h = outScreenHeight;		// ignored
-		ret = SDL_BlitSurface(pBuffer, &srcRect, pSurface, &destRect);
+		int ret = SDL_BlitSurface(pBuffer, &srcRect, pSurface, &destRect);
 		if (ret < 0)
 			fprintf(stderr, "BlitSurface error: %s\n", SDL_GetError());
 		}
@@ -702,21 +692,6 @@ uint8 cook_joypos(short value)
 
 	val_out = pot_max_left + ((value + 32768) / div_factor);
 
-	/*
-		// do 'dead zone'
-		if((value > 120) && (value < 136)) {
-		val2 = POT_CENTRE;
-		}
-		else {
-		// interpolate between pot_max_left and pot_max_right
-		if(value < 128) {
-		val2 = POT_CENTRE - ((128 - value) * pot_range_left) / 128;
-		}
-		else { // value > 128
-		val2 = POT_CENTRE + ((value - 128) * pot_range_right) / 128;
-		}
-		}
-		*/
 	return (uint8)val_out;
 	}
 
@@ -1003,7 +978,7 @@ void HostDoEvents(void)
 								cont2.key[3] = 1;
 								break;
 							case SDLK_RETURN:	// Hash button PL2
-								cont2.key[3] = 1;
+								cont2.key[1] = 1;
 								break;
 							case SDLK_F7:		// visualise sound on/off
 								//if(!visualise_sound) visualise_sound = 1;
@@ -1222,20 +1197,17 @@ void HostDisableInterrupts(void)
 // Sound output
 void HostProcessSoundBuffer(void)
 	{
-// TODO - Integrate code from PC version (2017-01-03)
-	// 	int i;
-	//	char s[256];
+	// Avoid a hang
+	if (0 == options.audio)
+		return;
 
-	/* NOT USED HERE - see fillsoundbuffer()
-		// update buffer with new data
-		if(options.audio)
-		Pokey_process(snd, snd_buf_size);
-
-		// render "voice" buffer if necessary
-		if(options.voice)
-		renderMixSampleEvents(snd, snd_buf_size);
-
-		*/
+	// 2017-01-03 wait until clear to fill the sound buffer
+	// (ie: until fillsoundbuffer() has been run)
+	// this will sync the audio output, and sync the emu to the audio output)
+	while (0 == fillSoundBufferDone)
+		{
+		Sleep(1);
+		}
 
 	// update buffer with new data
 	if (options.audio)
@@ -1245,6 +1217,7 @@ void HostProcessSoundBuffer(void)
 	if (options.voice)
 		renderMixSampleEvents(audioBuffer, AUDIOBUFLENGTH);
 
+	fillSoundBufferDone = 0;
 	}
 
 
@@ -1268,13 +1241,12 @@ void clrEmuScreen(unsigned char colour)
 
 void drawBox(int x1, int y1, int x2, int y2, unsigned char colour)
 	{
-	unsigned char *pp;
 	int x, y;
 	// TODO: draw rect on output screen here
 
 	for (y = y1; y <= y2; y++)
 		{
-		pp = (unsigned char *)pBuffer->pixels + y*pBuffer->pitch + x1;
+		unsigned char *pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x1;
 		for (x = x1; x <= x2; x++)
 			{
 			*pp++ = colour;
@@ -1287,14 +1259,12 @@ void drawChar(char c, int x, int y, unsigned int colour)
 	{
 	unsigned int i, j;
 	unsigned char cc;
-	unsigned char *pp;
-	unsigned char *pc;
 
 	// set character pointer
-	pc = &font5200[(c - 32) * 8];
+	unsigned char *pc = &font5200[(c - 32) * 8];
 
 	// set screen pointer
-	pp = (unsigned char *)pBuffer->pixels + y*pBuffer->pitch + x;
+	unsigned char *pp = (unsigned char*)pBuffer->pixels + y * pBuffer->pitch + x;
 	for (i = 0; i < 8; i++)
 		{
 		cc = *pc++;
@@ -1361,10 +1331,7 @@ char *doFileBrowseDialog(void)
 // ROM selection menu (new version)
 char* DoRomMenu()
 	{
-	int i, ret;
 	//char s[256];
-	int y;
-	int key;
 	//int debounce = 0;
 	SDL_Event event;
 	//long findHandle;
@@ -1405,8 +1372,7 @@ char* DoRomMenu()
 #endif
 
 	// No roms in the folder?
-// TODO : numroms vs num_roms ???
-	if (0 == numroms)
+	if (0 == num_roms)
 		{
 		HostLog("No roms in current folder!");
 		return NULL;
@@ -1416,7 +1382,7 @@ char* DoRomMenu()
 	while (1)
 		{
 		selection = frame_position + 9;            // rom in middle of frame is always the selected one
-		key = 0;
+		int key = 0;
 
 		// get key (if any)
 		if (SDL_PollEvent(&event))
@@ -1477,8 +1443,8 @@ char* DoRomMenu()
 		printXY("by James Higgs 2000-2018", 52, 16, 0x44);
 
 		// Draw text in scroll box
-		y = 32;
-		for (i = frame_position; i < (frame_position + 19); i++)
+		int y = 32;
+		for (int i = frame_position; i < (frame_position + 19); i++)
 			{
 			if (i >= 0 && i < num_roms)
 				{
@@ -1503,11 +1469,12 @@ char* DoRomMenu()
 
 		while (frameStart > SDL_GetTicks())
 			{
+			// do idle loop stuff here
 			SDL_Delay(10);					// gives time to other threads
 			}
 		frameStart = SDL_GetTicks() + 40;
 
-		ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
+		int ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
 		if (ret < 0)
 			fprintf(stderr, "BlitSurface error: %s\n", SDL_GetError());
 
@@ -1534,9 +1501,6 @@ char* DoRomMenu()
 // Help screen
 void DoHelpMenu()
 	{
-	int i, ret;
-	int y;
-	int key;
 	SDL_Event event;
 
 	// clear draw buffer
@@ -1566,7 +1530,7 @@ void DoHelpMenu()
 	//vline(pBuffer, 4, 4, 235, 0x0F);
 	//vline(pBuffer, 315, 4, 235, 0x0F);
 
-	ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
+	int ret = SDL_BlitSurface(pBuffer, NULL, pSurface, NULL);
 	if (ret < 0)
 		fprintf(stderr, "BlitSurface error: %s\n", SDL_GetError());
 
@@ -1575,7 +1539,7 @@ void DoHelpMenu()
 	// Display help screen
 	while (1)
 		{
-		key = 0;
+		int key = 0;
 
 		// get key (if any)
 		if (SDL_PollEvent(&event))
@@ -1614,8 +1578,6 @@ void DoHelpMenu()
 int DoOptionsMenu(void)
 	{
 	int i, selected_row;
-	int key;
-	int y;
 	//int debounce = 0;
 	char s[256];
 	unsigned char c;
@@ -1632,7 +1594,7 @@ int DoOptionsMenu(void)
 	int exit_menu = 0;
 	while (!exit_menu)
 		{
-		key = 0;
+		int key = 0;
 
 		// get key (if any)
 		if (SDL_PollEvent(&event))
@@ -1657,32 +1619,32 @@ int DoOptionsMenu(void)
 		// check for button press
 		if (key == SDLK_SPACE || key == SDLK_RETURN)  // SPACE/RETURN
 			{
-			if (selected_row == 0)
+			if (0 == selected_row)
 				{
 				DoHelpMenu();
 				Wait(20);
 				}
-			else if (selected_row == 1)
+			else if (1 == selected_row)
 				break; // load game
-			else if (selected_row == 2)
+			else if (2 == selected_row)
 				{
 				SaveState("state");
 				strcpy(msg, "Game state saved.");
 				Wait(30);
 				}
-			else if (selected_row == 3)
+			else if (3 == selected_row)
 				{
 				LoadState("state");
 				strcpy(msg, "Game state loaded.");
 				Wait(30);
 				}
-			else if (selected_row == 7)
+			else if (7 == selected_row)
 				{
 				Jum52_Reset();
 				strcpy(msg, "5200 reset.");
 				Wait(30);
 				}
-			else if (selected_row == 8)
+			else if (8 == selected_row)
 				break; // quit
 			}
 
@@ -1694,13 +1656,14 @@ int DoOptionsMenu(void)
 			break;
 			}
 
-
 		// move ROM selector up/down
 		if (key == SDLK_DOWN)
-			if (selected_row < SELECT_ROW_MAX) selected_row++;
+			if (selected_row < SELECT_ROW_MAX)
+				selected_row++;
 
 		if (key == SDLK_UP)
-			if (selected_row > 0) selected_row--;
+			if (selected_row > 0)
+				selected_row--;
 
 		if ((key == SDLK_RIGHT) || (key == SDLK_LEFT))
 			{
@@ -1708,7 +1671,8 @@ int DoOptionsMenu(void)
 				{
 					case 4: // controller
 						options.controller++;
-						if (4 == options.controller) options.controller = 0;
+						if (4 == options.controller)
+							options.controller = 0;
 						break;
 					case 5: // control mode
 						//					options.controlmode++;
@@ -1718,12 +1682,14 @@ int DoOptionsMenu(void)
 						if (key == SDLK_RIGHT)
 							{
 							options.volume += 5;
-							if (options.volume > 100) options.volume = 100;
+							if (options.volume > 100)
+								options.volume = 100;
 							}
 						else if (key == SDLK_LEFT)
 							{
 							options.volume -= 5;
-							if (options.volume < 0) options.volume = 0;
+							if (options.volume < 0)
+								options.volume = 0;
 							}
 						break;
 				}
@@ -1732,11 +1698,14 @@ int DoOptionsMenu(void)
 		// clear draw buffer
 		clrEmuScreen(0x00);
 		drawBox(4, 4, 315, 235, 0x50);
-		printXY("Jum52 Options Menu", 80, 8, 0x1f);
+		//printXY("Jum52 Options Menu", 80, 8, 0x1f);
+		sprintf(s, "Jum's Atari 5200 Emulator V%s", JUM52_VERSION);
+		printXY(s, 32, 8, 0x4E);
+		printXY("by James Higgs 2000-2018", 52, 16, 0x44);
 
 		// Draw options list
 #define INDENT 80
-		y = 32;
+		int y = 48;
 		for (i = 0; i <= SELECT_ROW_MAX; i++)
 			{
 			c = 0x18;
@@ -1978,7 +1947,7 @@ void display_charset(void)
 			{
 			for (k = 0; k < 8; k++)
 				{
-				d = memory5200[chbase++];
+				uint8 d = memory5200[chbase++];
 				x = j * 8; y = i * 8 + k;
 				if (d & 0x80) SDL_SetPixel(pBuffer, x, y, c);
 				if (d & 0x40) SDL_SetPixel(pBuffer, x + 1, y, c);
@@ -1997,13 +1966,11 @@ void display_charset(void)
 // Monitor/debugger
 int monitor(void)
 	{
-	int n; //i, x;
+	int n = 0;
 	uint16 addr;
-	uint16 rtc5200;
 	//UBYTE data;
 	unsigned int new_addr;
 	char mystring[128];
-	char ccmd;
 
 	if (debugging)
 		return 0;
@@ -2014,15 +1981,16 @@ int monitor(void)
 		SDL_PauseAudio(1);
 
 	printhelp();
+	memset(mystring, 0, 128);
 	while (strcmp(mystring, "quit") != 0)
 		{
-		rtc5200 = (memory5200[RTC_HI] << 8) + memory5200[RTC_LO];
+		uint16 rtc5200 = (memory5200[RTC_HI] << 8) + memory5200[RTC_LO];
 		// draw registers
 		clrEmuScreen(0x00);
 		sprintf(msg, "A %2X  X %2X  Y %2X  S %2X  PC %4X NVGBDIZC\n", A, X, Y, S, PC);
 		printXY(msg, 0, 0, 15);
 		sprintbin(mystring, P);
-		sprintf(msg, "								%s", mystring);
+		sprintf(msg, "                                %s", mystring);
 		printXY(msg, 0, 8, 15);
 		sprintf(msg, "RTC %4X  ATR %2X", rtc5200, memory5200[ATTRACT_TIMER]);
 		printXY(msg, 0, 16, 15);
@@ -2102,7 +2070,7 @@ int monitor(void)
 
 		// get input
 		clrEmuScreen(0x00);
-		ccmd = getkey(); // (readkey() & 0xFF);
+		char ccmd = getkey(); // (readkey() & 0xFF);
 		//fprintf(stderr, "key: %d\n", ccmd);
 		sprintf(msg, "%c", ccmd);
 		printXY(msg, 0, 0, 15);
@@ -2217,7 +2185,7 @@ int monitor(void)
 		if (ccmd == 'K')
 			{
 			irqst &= 0xbf;
-			memory5200[KBCODE] = 0x19;		// (0x0C << 1) | 1;
+			memory5200[KBCODE] = 0x19;        // (0x0C << 1) | 1;
 			if (irqen & 0x40)
 				{
 				irq6502();
