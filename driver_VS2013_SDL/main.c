@@ -1342,7 +1342,7 @@ char *DoRomMenu()
 	_findclose(findHandle);
 
 #ifdef _DEBUG
-	for (i = 0; i < num_roms; i++)
+	for (int i = 0; i < num_roms; i++)
 		{
 		sprintf(s, "rom: %s\n", romdata[i].name);
 		HostLog(s);
