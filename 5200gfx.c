@@ -345,7 +345,7 @@ int pf_line_render(void)
 	uint8 d, c, ci;
 	uint16 ch_base, ch_addr;
 	int i, j, k, x;
-	uint8 gfxcol[4];
+//	uint8 gfxcol[4];
 	uint8 pfw;
 
 	stolencycles = 0;
@@ -382,10 +382,10 @@ int pf_line_render(void)
 	pfcol[3] = memory5200[COLPF2];
 	pfcol[4] = memory5200[COLPF3];
 
-	gfxcol[0] = memory5200[COLPF0];
-	gfxcol[1] = memory5200[COLPF1];
-	gfxcol[2] = memory5200[COLPF2];
-	gfxcol[3] = memory5200[COLPF3];
+//	gfxcol[0] = memory5200[COLPF0];
+//	gfxcol[1] = memory5200[COLPF1];
+//	gfxcol[2] = memory5200[COLPF2];
+//	gfxcol[3] = memory5200[COLPF3];
 
 	// find playfield width
 	pfw = memory5200[DMACTL] & 0x3;
@@ -943,7 +943,8 @@ int pf_line_render(void)
 // bits 4 to 7 hold the PL bits (bit 4 = PL0, bit5 = PL1 etc)
 // *** NB: OPTIMISE plot process (eg: eliminate y arg, and possibly x)
 // Player gfx putpixel with priority and collision detect
-INLINE void pl_plot(int x, int y, uint8 data, int pl, int width, int c) {
+//INLINE void pl_plot(int x, int y, uint8 data, int pl, int width, int c) {
+void pl_plot(int x, int y, uint8 data, int pl, int width, int c) {
 	int i, j, x1;
 	uint8 t1, t2, plcollval;
 
@@ -1012,7 +1013,8 @@ INLINE void pl_plot(int x, int y, uint8 data, int pl, int width, int c) {
 }
 
 // Missile gfx putpixel with PF collision check
-INLINE void miss_plot(int x, int y, int miss, int width, int c) {
+//INLINE void miss_plot(int x, int y, int miss, int width, int c) {
+void miss_plot(int x, int y, int miss, int width, int c) {
 	uint8 t1, t2;
 	while (width--) {
 		// check if this pixel is over PF
