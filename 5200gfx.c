@@ -344,7 +344,7 @@ int pf_line_render(void)
 {
 	uint8 d, c, ci;
 	uint16 ch_base, ch_addr;
-	int i, j, k, x;
+	int i, j;
 //	uint8 gfxcol[4];
 	uint8 pfw;
 
@@ -389,7 +389,7 @@ int pf_line_render(void)
 
 	// find playfield width
 	pfw = memory5200[DMACTL] & 0x3;
-	x = pfw_start[pfw];
+	int x = pfw_start[pfw];
 
 	// NEW: this has been split into 2 sections:
 	//			1. If line 0 of mode, do cmd
@@ -527,7 +527,7 @@ int pf_line_render(void)
 			c = (pfcol[3] & 0xF0) | (pfcol[2] & 0x0F);
 			// draw text line
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				// get character no.
 				uint8 chr = memory5200[scanaddr + i];
 				ch_addr = ch_base + ((chr & 0x7f) << 3);
@@ -576,7 +576,7 @@ int pf_line_render(void)
 			c = pfcol[2];
 			// draw text line
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				// get character no.
 				d = memory5200[scanaddr + i];
 				ch_addr = ch_base + ((d & 0x7f) << 3);
@@ -661,9 +661,10 @@ int pf_line_render(void)
 			// calculate character offset depending on mode
 			if (current_mode == 4) j = mode_y + vscrollStartLine;
 			else j = mode_y / 2 + vscrollStartLine / 2;
+
 			// draw text line
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				// get character
 				d = memory5200[scanaddr + i];
 				uint8 alt_clr_bit = d & 0x80;
@@ -673,22 +674,22 @@ int pf_line_render(void)
 				ci = (d >> 6) & 0x03;
 				c = pfcol[ci];
 				if (ci == 3) { if (alt_clr_bit) c = pfcol[4]; }
-				pcb[k] = ci; pcb[k + 1] = ci;
+				if (k >= 0) { pcb[k] = ci; pcb[k + 1] = ci; }
 				ppix8[k++] = c; ppix8[k++] = c;
 				ci = (d >> 4) & 0x03;
 				c = pfcol[ci];
 				if (ci == 3) { if (alt_clr_bit) c = pfcol[4]; }
-				pcb[k] = ci; pcb[k + 1] = ci;
+				if (k >= 0) { pcb[k] = ci; pcb[k + 1] = ci; }
 				ppix8[k++] = c; ppix8[k++] = c;
 				ci = (d >> 2) & 0x03;
 				c = pfcol[ci];
 				if (ci == 3) { if (alt_clr_bit) c = pfcol[4]; }
-				pcb[k] = ci; pcb[k + 1] = ci;
+				if (k >= 0) { pcb[k] = ci; pcb[k + 1] = ci; }
 				ppix8[k++] = c; ppix8[k++] = c;
 				ci = d & 0x03;
 				c = pfcol[ci];
 				if (ci == 3) { if (alt_clr_bit) c = pfcol[4]; }
-				pcb[k] = ci; pcb[k + 1] = ci;
+				if (k >= 0) { pcb[k] = ci; pcb[k + 1] = ci; }
 				ppix8[k++] = c; ppix8[k++] = c;
 				x += 8;
 			} // next i
@@ -706,7 +707,7 @@ int pf_line_render(void)
 			else j = mode_y / 2 + vscrollStartLine / 2;
 			// draw text line
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				d = memory5200[scanaddr + i];
 				ci = ((d >> 6) & 0x3) + 1;
 				c = pfcol[ci];          // get colour
@@ -728,7 +729,7 @@ int pf_line_render(void)
 			bytes_per_line = modebytes[0][pfw];
 			// draw line of this mode
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				d = memory5200[scanaddr + i];
 				ci = (d >> 6) & 0x03;
 				c = pfcol[ci];
@@ -752,7 +753,7 @@ int pf_line_render(void)
 			// draw text line
 			c = pfcol[2];	// is this right?
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				d = memory5200[scanaddr + i];
 				for (j = 8; j; j--) {
 					if (d & 0x80) {
@@ -771,7 +772,7 @@ int pf_line_render(void)
 			bytes_per_line = modebytes[1][pfw];
 			// draw text line
 			for (i = 0; i < bytes_per_line; i++) {
-				k = x;
+				int k = x;
 				d = memory5200[scanaddr + i];
 				for (j = 4; j; j--) {
 					ci = (d >> 6) & 0x3;
