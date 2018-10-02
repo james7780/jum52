@@ -1217,7 +1217,7 @@ void HostProcessSoundBuffer(void)
 	// render "voice" buffer if necessary
 	if (options.voice)
 		renderMixSampleEvents(audioBuffer, AUDIOBUFLENGTH);
-
+		
 	fillSoundBufferDone = 0;
 	}
 
